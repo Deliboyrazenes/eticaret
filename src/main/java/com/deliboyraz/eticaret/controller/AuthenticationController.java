@@ -1,6 +1,7 @@
 package com.deliboyraz.eticaret.controller;
 
 import com.deliboyraz.eticaret.dto.CustomerLoginRequest;
+import com.deliboyraz.eticaret.dto.SellerLoginRequest;
 import com.deliboyraz.eticaret.dto.user.AdminDTO;
 import com.deliboyraz.eticaret.dto.user.CustomerDTO;
 import com.deliboyraz.eticaret.dto.user.SellerDTO;
@@ -13,6 +14,7 @@ import com.deliboyraz.eticaret.mapper.user.SellerMapper;
 import com.deliboyraz.eticaret.service.AuthenticationService;
 import com.deliboyraz.eticaret.service.CustomerService;
 import com.deliboyraz.eticaret.service.JwtUtil;
+import com.deliboyraz.eticaret.service.SellerService;
 import org.antlr.v4.runtime.Token;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -33,12 +35,19 @@ public class AuthenticationController {
     private final JwtUtil jwtUtil;
     private final CustomerService customerService;
     private final BCryptPasswordEncoder passwordEncoder;
+    private final SellerService sellerService;
+
     @Autowired
-    public AuthenticationController(AuthenticationService authenticationService, JwtUtil jwtUtil, CustomerService customerService,BCryptPasswordEncoder bCryptPasswordEncoder) {
+    public AuthenticationController(AuthenticationService authenticationService,
+                                    JwtUtil jwtUtil,
+                                    CustomerService customerService,
+                                    BCryptPasswordEncoder bCryptPasswordEncoder,
+                                    SellerService sellerService) {
         this.authenticationService = authenticationService;
         this.jwtUtil= jwtUtil;
         this.customerService = customerService;
         this.passwordEncoder = bCryptPasswordEncoder;
+        this.sellerService = sellerService;
     }
 
     @PostMapping("/login")
@@ -56,6 +65,34 @@ public class AuthenticationController {
                 Map<String, String> response = new HashMap<>();
                 response.put("token", token);
                 response.put("userType", String.valueOf(customer.getAuthority()));
+                return ResponseEntity.ok(response);
+
+            } else {
+                System.out.println("Hatalı şifre!");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Hatalı şifre!");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Sunucu hatası!");
+        }
+    }
+
+
+    @PostMapping("/sellerlogin")
+    public ResponseEntity<?> sellerLogin(@RequestBody SellerLoginRequest sellerLoginRequest) {
+        try {
+            System.out.println("Giriş isteği alındı: " + sellerLoginRequest.getPhone());
+
+            Seller seller = sellerService.findSellerByPhone(sellerLoginRequest.getPhone().toLowerCase());
+            System.out.println("Kullanıcı bulundu: " + seller.getPhone());
+
+            if (passwordEncoder.matches(sellerLoginRequest.getPassword(), seller.getPassword())) {
+                System.out.println("Şifre doğrulandı.");
+                String token = jwtUtil.generateToken(seller.getPhone(), String.valueOf(seller.getAuthority()));
+                System.out.println(token);
+                Map<String, String> response = new HashMap<>();
+                response.put("token", token);
+                response.put("userType", String.valueOf(seller.getAuthority()));
                 return ResponseEntity.ok(response);
 
             } else {

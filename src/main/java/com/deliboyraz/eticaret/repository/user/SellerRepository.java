@@ -11,4 +11,5 @@ public interface SellerRepository extends JpaRepository<Seller, Long> {
     @Query("SELECT s FROM Seller s WHERE s.phone=:phone")
     Optional<Seller> findSellerByPhone(String phone);
 
+
 }

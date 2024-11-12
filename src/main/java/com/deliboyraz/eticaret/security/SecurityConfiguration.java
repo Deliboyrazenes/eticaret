@@ -66,6 +66,8 @@ public class SecurityConfiguration {
                     auth.requestMatchers("/welcome/**",
                                     "/auth/register/customer",
                                     "/auth/login",
+                                    "/auth/sellerlogin",
+
                                     "/product/**")  // Ürünleri herkese açık yap
                             .permitAll();
 
@@ -75,6 +77,11 @@ public class SecurityConfiguration {
                             .hasAuthority("ADMIN");
 
                     // Seller endpoints
+                    auth.requestMatchers("/seller/products"
+
+
+                                    )  // Ürünleri herkese açık yap
+                            .hasAuthority("SELLER");
                     auth.requestMatchers(HttpMethod.POST, "/product/**")
                             .hasAuthority("SELLER");
                     auth.requestMatchers(HttpMethod.PUT, "/product/**")
