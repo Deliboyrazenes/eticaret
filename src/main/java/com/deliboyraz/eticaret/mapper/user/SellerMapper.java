@@ -16,6 +16,18 @@ public class SellerMapper {
         );
     }
 
+    // Geriye dönük uyumluluk için eski mapping metodu
+    public static SellerDTO entityToDtoBasic(Seller seller) {
+        if (seller == null) {
+            return null;
+        }
+        return new SellerDTO(
+                seller.getId(),
+                seller.getName(),
+                seller.getPhone()
+        );
+    }
+
     public static Seller dtoToEntity(SellerDTO sellerDTO) {
         if (sellerDTO == null) {
             return null;
@@ -25,6 +37,7 @@ public class SellerMapper {
         seller.setName(sellerDTO.name());
         seller.setPhone(sellerDTO.phone());
 
+
         return seller;
-}
+    }
 }
