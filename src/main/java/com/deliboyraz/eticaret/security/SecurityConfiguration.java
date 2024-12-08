@@ -1,5 +1,7 @@
 package com.deliboyraz.eticaret.security;
 
+import com.deliboyraz.eticaret.service.JwtFilter;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpHeaders;
@@ -15,6 +17,7 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -25,6 +28,10 @@ import java.util.Collections;
 @Configuration
 @EnableWebSecurity
 public class SecurityConfiguration {
+
+    @Autowired
+    private JwtFilter jwtFilter;
+
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -59,41 +66,48 @@ public class SecurityConfiguration {
         http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf.disable())
-                .sessionManagement(session -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> {
-                    // Herkese açık endpoints
-                    auth.requestMatchers("/welcome/**",
-                                    "/auth/register/customer",
-                                    "/auth/login",
-                                    "/auth/sellerlogin",
+                    // Herkese açık endpointler
+                    auth.requestMatchers("/welcome/",
+                            "/auth/register/customer",
+                            "/auth/login",
+                            "/auth/sellerlogin",
+                            "/product/search",
+                            "/products/search/**").permitAll();
 
-                                    "/product/**")  // Ürünleri herkese açık yap
-                            .permitAll();
+                    // Ürün listeleme endpoint'i herkese açık
+                    auth.requestMatchers(HttpMethod.GET, "/product/**").permitAll();
 
-                    // Admin endpoints
+                    auth.requestMatchers("/cart/**").hasAuthority("CUSTOMER");
+
+                    // Customer profil endpoint'leri - OPTIONS metoduna izin ver
+                    auth.requestMatchers(HttpMethod.OPTIONS, "/customer/**").permitAll();
+
+                    // Customer profil endpoint'leri - sadece müşteriler erişebilir
+                    auth.requestMatchers("/customer/**").hasAuthority("CUSTOMER");
+
+                    // Admin yetkilendirmesi gerektiren endpointler
                     auth.requestMatchers("/auth/register/admin",
-                                    "/auth/register/seller")
-                            .hasAuthority("ADMIN");
+                            "/auth/register/seller").hasAuthority("ADMIN");
 
-                    // Seller endpoints
-                    auth.requestMatchers("/seller/products"
+                    // Satıcıya özel endpointler
+                    auth.requestMatchers("/seller/**").hasAuthority("SELLER");
 
+                    auth.requestMatchers("/category/**").permitAll();
 
-                                    )  // Ürünleri herkese açık yap
-                            .hasAuthority("SELLER");
-                    auth.requestMatchers(HttpMethod.POST, "/product/**")
-                            .hasAuthority("SELLER");
-                    auth.requestMatchers(HttpMethod.PUT, "/product/**")
-                            .hasAuthority("SELLER");
-                    auth.requestMatchers(HttpMethod.DELETE, "/product/**")
-                            .hasAuthority("SELLER");
+                    // Ürün işlemleri (Sadece satıcıya yetkilendirilmiş)
+                    auth.requestMatchers(HttpMethod.POST, "/product/**").hasAuthority("SELLER");
+                    auth.requestMatchers(HttpMethod.PUT, "/product/**").hasAuthority("SELLER");
+                    auth.requestMatchers(HttpMethod.DELETE, "/product/**").hasAuthority("SELLER");
 
-                    // Diğer tüm istekler
+                    // Diğer tüm istekler doğrulama gerektirir
                     auth.anyRequest().authenticated();
                 })
+                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
                 .httpBasic(Customizer.withDefaults());
 
         return http.build();
     }
+
 }

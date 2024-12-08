@@ -61,12 +61,17 @@ public class AuthenticationController {
             if (passwordEncoder.matches(customerLoginRequest.getPassword(), customer.getPassword())) {
                 System.out.println("Şifre doğrulandı.");
                 String token = jwtUtil.generateToken(customer.getEmail(), String.valueOf(customer.getAuthority()));
-                System.out.println(token);
+                System.out.println("Token generated: " + token); // Debug için
+
                 Map<String, String> response = new HashMap<>();
                 response.put("token", token);
                 response.put("userType", String.valueOf(customer.getAuthority()));
-                return ResponseEntity.ok(response);
+                response.put("firstName", customer.getFirstName());
+                response.put("lastName", customer.getLastName());
+                response.put("email", customer.getEmail());
 
+                System.out.println("Response data: " + response); // Debug için
+                return ResponseEntity.ok(response);
             } else {
                 System.out.println("Hatalı şifre!");
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Hatalı şifre!");
@@ -77,26 +82,28 @@ public class AuthenticationController {
         }
     }
 
-
     @PostMapping("/sellerlogin")
     public ResponseEntity<?> sellerLogin(@RequestBody SellerLoginRequest sellerLoginRequest) {
         try {
             System.out.println("Giriş isteği alındı: " + sellerLoginRequest.getPhone());
 
-            Seller seller = sellerService.findSellerByPhone(sellerLoginRequest.getPhone().toLowerCase());
+            Seller seller = sellerService.findSellerByPhone(sellerLoginRequest.getPhone());
             System.out.println("Kullanıcı bulundu: " + seller.getPhone());
 
             if (passwordEncoder.matches(sellerLoginRequest.getPassword(), seller.getPassword())) {
                 System.out.println("Şifre doğrulandı.");
+                // Telefon numarasını token'a ekle
                 String token = jwtUtil.generateToken(seller.getPhone(), String.valueOf(seller.getAuthority()));
-                System.out.println(token);
+
                 Map<String, String> response = new HashMap<>();
                 response.put("token", token);
                 response.put("userType", String.valueOf(seller.getAuthority()));
-                return ResponseEntity.ok(response);
+                response.put("sellerId", String.valueOf(seller.getId()));
+                response.put("name", seller.getName());
+                response.put("phone", seller.getPhone());
 
+                return ResponseEntity.ok(response);
             } else {
-                System.out.println("Hatalı şifre!");
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Hatalı şifre!");
             }
         } catch (Exception e) {
