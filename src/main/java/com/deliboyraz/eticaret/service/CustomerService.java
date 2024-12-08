@@ -18,7 +18,6 @@ public class CustomerService {
 
     private final CustomerRepository customerRepository;
     private final AddressRepository addressRepository;
-
     private BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     @Autowired
@@ -50,5 +49,37 @@ public class CustomerService {
     public List<Order> findOrdersByCustomerId(Long customerId) {
         Customer customer = findById(customerId);
         return customer.getOrders();
-}
+    }
+
+
+    @Transactional
+    public Customer updateCustomer(Customer customer) {
+        Customer existingCustomer = findCustomerByEmail(customer.getEmail());
+
+        // Email değiştirilmeyecek
+        customer.setEmail(existingCustomer.getEmail());
+
+        // Şifre değiştirilmeyecek
+        customer.setPassword(existingCustomer.getPassword());
+
+        return customerRepository.save(customer);
+    }
+
+    @Transactional
+    public void updatePassword(String email, String currentPassword, String newPassword) {
+        Customer customer = findCustomerByEmail(email);
+
+        if (!passwordEncoder.matches(currentPassword, customer.getPassword())) {
+            throw new IllegalArgumentException("Current password is incorrect");
+        }
+
+        // Şifre uzunluğu kontrolü
+        if (newPassword.length() < 6) {
+            throw new IllegalArgumentException("Password must be at least 6 characters");
+        }
+
+        customer.setPassword(passwordEncoder.encode(newPassword));
+        customerRepository.save(customer);
+    }
+
 }

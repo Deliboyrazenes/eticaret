@@ -2,6 +2,7 @@ package com.deliboyraz.eticaret.entity.user;
 
 import com.deliboyraz.eticaret.entity.*;
 import com.deliboyraz.eticaret.enums.Genders;
+import com.fasterxml.jackson.annotation.JsonIgnore;  // Bu import'u ekleyin
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
@@ -40,6 +41,7 @@ public class Customer implements UserDetails {
     @NotNull(message = "Password is required")
     @Size(min = 3, max = 68, message = "Password must be between 3 and 50 characters")
     @Column(name = "password")
+    @JsonIgnore  // Şifreyi JSON'da göstermemek için
     private String password;
 
     @NotNull(message = "Gender is required")
@@ -70,18 +72,23 @@ public class Customer implements UserDetails {
     private Role authority;
 
     @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL)
+    @JsonIgnore  // Döngüsel referansı önlemek için
     private List<Address> addresses;
 
     @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonIgnore  // Döngüsel referansı önlemek için
     private List<Order> orders;
 
     @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL)
+    @JsonIgnore  // Döngüsel referansı önlemek için
     private List<Review> reviews;
 
     @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL)
+    @JsonIgnore  // Döngüsel referansı önlemek için
     private List<Payment> payments;
 
     @OneToOne(mappedBy = "customer", cascade = CascadeType.ALL)
+    @JsonIgnore  // Döngüsel referansı önlemek için
     private Cart cart;
 
     @Override
