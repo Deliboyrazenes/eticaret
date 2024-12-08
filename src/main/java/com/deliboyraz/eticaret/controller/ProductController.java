@@ -14,6 +14,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.NoSuchElementException;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/product")
@@ -84,6 +86,23 @@ public class ProductController extends BaseController {
     public ResponseEntity<ProductDTO> getProductById(@PathVariable Long id) {
         Product product = productService.findProductById(id);
         return ResponseEntity.ok(ProductMapper.entityToDto(product));
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<List<ProductDTO>> searchProducts(@RequestParam String keyword) {
+        List<Product> products = productService.searchProductsByName(keyword);
+
+        // Ürün bulunamazsa NoSuchElementException fırlat
+        if (products.isEmpty()) {
+            throw new NoSuchElementException();
+        }
+
+        // Stream API kullanarak daha temiz bir dönüşüm
+        List<ProductDTO> productDTOS = products.stream()
+                .map(ProductMapper::entityToDto)
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(productDTOS);
     }
 
     @GetMapping("/category/{categoryId}")

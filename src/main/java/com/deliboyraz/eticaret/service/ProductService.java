@@ -14,9 +14,12 @@ public class ProductService {
     private ProductRepository productRepository;
     private CustomerService customerService;
 
+
     public ProductService(ProductRepository productRepository) {
         this.productRepository = productRepository;
     }
+
+
 
     @Transactional
     public Product save(Product product) {
@@ -68,5 +71,14 @@ public class ProductService {
         return productRepository.findByCategoryId(categoryId);
     }
 
-
+    public List<Product> searchProductsByName(String keyword) {
+        if (keyword == null || keyword.trim().isEmpty()) {
+            return productRepository.findAll();
+        }
+        return productRepository.findByNameContainingIgnoreCase(keyword);
+    }
 }
+
+
+
+
