@@ -5,7 +5,9 @@ import com.deliboyraz.eticaret.exceptions.NotFoundException;
 import com.deliboyraz.eticaret.repository.CategoryRepository;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Optional;
+
 @Service
 public class CategoryService {
 
@@ -21,5 +23,9 @@ public class CategoryService {
             return category.get();
         }
         throw new NotFoundException("Category not found with ID: " + id);
-}
+    }
+
+    public List<Category> getAllCategories() {
+        return categoryRepository.findAll();
+    }
 }
