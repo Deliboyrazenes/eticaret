@@ -40,47 +40,119 @@ public class CartService {
                 });
     }
 
-    //MÜŞTERİ İDSİNE GÖRE SEPETE ÜRÜN EKLE
+    // MÜŞTERİ İDSİNE GÖRE SEPETE ÜRÜN EKLE
     @Transactional
-    public Cart addProductToCart(Long customerId, Long productId) throws InsufficientStockException {
+    public Cart addProductToCart(Long customerId, Long productId) {
+        // Sepeti bul veya oluştur
         Cart cart = findOrCreateCartForCustomer(customerId);
 
+        // Ürünü bul
         Product product = productService.findProductById(productId);
 
-        //STOK KONTROLÜ
+        // Stok kontrolü
         if (product.getStock() < 1) {
-            throw new InsufficientStockException("This products is out of stock " + product.getName());
+            throw new InsufficientStockException("This product is out of stock: " + product.getName());
         }
 
+        // Ürünü sepete ekle
         cart.getProducts().add(product);
 
+        // Stoktan düş
+        product.setStock(product.getStock() - 1);
+
+        // Ara toplam ve genel toplamı hesapla
         BigDecimal itemTotal = cart.getProducts().stream()
                 .map(Product::getPrice)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         cart.setItemTotal(itemTotal);
         cart.setGrandTotal(itemTotal);
+
+        // Sepeti kaydet
         return cartRepository.save(cart);
     }
 
     @Transactional
-    public Cart removeProductFromCart(Long customerId, Long productId) {
+    public Cart updateProductQuantity(Long customerId, Long productId, int newQuantity) {
+        // Sepeti bul veya oluştur
         Cart cart = findOrCreateCartForCustomer(customerId);
 
+        // Ürünü bul
         Product product = productService.findProductById(productId);
 
-        if (!cart.getProducts().contains(product)) {
+        // Sepette ürün var mı kontrol et
+        long currentQuantity = cart.getProducts().stream()
+                .filter(p -> p.getId()== productId)
+                .count();
+
+        if (currentQuantity == 0) {
             throw new NotFoundException("Product not found in cart: " + product.getName());
         }
 
-        cart.getProducts().remove(product);
+        // Stok kontrolü
+        int stockAdjustment = (int) (currentQuantity - newQuantity);
+        if (product.getStock() + stockAdjustment < 0) {
+            throw new InsufficientStockException("Insufficient stock for product: " + product.getName());
+        }
 
+        // Yeni miktara göre ürünleri ekle veya çıkar
+        if (newQuantity > currentQuantity) {
+            // Ürün miktarını artır
+            for (int i = 0; i < newQuantity - currentQuantity; i++) {
+                cart.getProducts().add(product);
+                product.setStock(product.getStock() - 1);
+            }
+        } else if (newQuantity < currentQuantity) {
+            // Ürün miktarını azalt
+            for (int i = 0; i < currentQuantity - newQuantity; i++) {
+                cart.getProducts().remove(product);
+                product.setStock(product.getStock() + 1);
+            }
+        }
+
+        // Ara toplam ve genel toplamı yeniden hesapla
         BigDecimal itemTotal = cart.getProducts().stream()
                 .map(Product::getPrice)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         cart.setItemTotal(itemTotal);
         cart.setGrandTotal(itemTotal);
+
+        // Sepeti kaydet
         return cartRepository.save(cart);
-}
+    }
+
+
+    @Transactional
+    public Cart removeProductFromCart(Long customerId, Long productId) {
+        // Sepeti bul veya oluştur
+        Cart cart = findOrCreateCartForCustomer(customerId);
+
+        // Ürünü bul
+        Product product = productService.findProductById(productId);
+
+        // Sepette ürün var mı kontrol et
+        long currentQuantity = cart.getProducts().stream()
+                .filter(p -> p.getId()== productId)
+                .count();
+
+        if (currentQuantity == 0) {
+            throw new NotFoundException("Product not found in cart: " + product.getName());
+        }
+
+        // Sepetten ürünü çıkar ve stokları geri ekle
+        cart.getProducts().removeIf(p -> p.getId()== productId);
+        product.setStock(product.getStock() + (int) currentQuantity);
+
+        // Ara toplam ve genel toplamı yeniden hesapla
+        BigDecimal itemTotal = cart.getProducts().stream()
+                .map(Product::getPrice)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        cart.setItemTotal(itemTotal);
+        cart.setGrandTotal(itemTotal);
+
+        // Sepeti kaydet
+        return cartRepository.save(cart);
+    }
 }

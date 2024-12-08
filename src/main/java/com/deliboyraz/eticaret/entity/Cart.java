@@ -10,6 +10,7 @@ import lombok.Setter;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+
 @NoArgsConstructor
 @AllArgsConstructor
 @Getter
@@ -35,9 +36,29 @@ public class Cart {
     @OneToMany(mappedBy = "cart")
     private List<Order> orders;
 
+
+
     @ManyToMany
     @JoinTable(name = "cart_product",
             joinColumns = @JoinColumn(name = "cart_id"),
             inverseJoinColumns = @JoinColumn(name = "product_id"))
     private List<Product> products = new ArrayList<>();
+
+    // Helper methods
+    public void addProduct(Product product) {
+        products.add(product);
+        calculateTotals();
+    }
+
+    public void removeProduct(Product product) {
+        products.remove(product);
+        calculateTotals();
+    }
+
+    private void calculateTotals() {
+        this.itemTotal = products.stream()
+                .map(Product::getPrice)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        this.grandTotal = this.itemTotal;
+    }
 }
