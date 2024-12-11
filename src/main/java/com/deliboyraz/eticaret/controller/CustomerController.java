@@ -1,21 +1,34 @@
 package com.deliboyraz.eticaret.controller;
 
+import com.deliboyraz.eticaret.dto.OrderDTO;
+import com.deliboyraz.eticaret.entity.Order;
 import com.deliboyraz.eticaret.entity.user.Customer;
+import com.deliboyraz.eticaret.exceptions.NotFoundException;
+import com.deliboyraz.eticaret.mapper.OrderMapper;
+import com.deliboyraz.eticaret.repository.user.CustomerRepository;
 import com.deliboyraz.eticaret.service.CustomerService;
-import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @RestController
 @RequestMapping("/customer")
-@RequiredArgsConstructor
-public class CustomerController {
+public class CustomerController extends BaseController {
+    private final CustomerRepository customerRepository;
+
+    public CustomerController(CustomerRepository customerRepository, CustomerService customerService) {
+        this.customerRepository = customerRepository;
+        this.customerService = customerService;
+    }
 
     private final CustomerService customerService;
 
     // İç sınıf olarak PasswordUpdateRequest'i tanımlıyoruz
-    public static class PasswordUpdateRequest {
+    public static class PasswordUpdateRequest  {
         private String currentPassword;
         private String newPassword;
 
@@ -86,4 +99,32 @@ public class CustomerController {
             return ResponseEntity.internalServerError().build();
         }
     }
+
+    @GetMapping("/orders")
+    public ResponseEntity<List<OrderDTO>> findOrdersForAuthenticatedCustomer() {
+        Long authenticatedUserId = getAuthenticatedUserId();
+        try {
+            Customer customer = customerService.findById(authenticatedUserId);
+
+            List<Order> orders = customerService.findOrdersByCustomerId(customer.getId());
+            if (orders.isEmpty()) {
+                return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+            }
+
+            List<OrderDTO> orderDTOS = new ArrayList<>();
+            for (Order order : orders) {
+                OrderDTO orderDTO = OrderMapper.entityToDto(order);
+                orderDTOS.add(orderDTO);
+            }
+            return ResponseEntity.ok(orderDTOS);
+        } catch (Exception e) {
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    public List<Order> findOrdersByCustomerId(Long customerId) {
+        Customer customer = customerRepository.findById(customerId)
+                .orElseThrow(() -> new NotFoundException("Customer with ID: " + customerId + " not found."));
+        return customer.getOrders();
+}
 }

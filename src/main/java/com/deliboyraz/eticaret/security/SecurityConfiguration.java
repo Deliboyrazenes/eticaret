@@ -91,8 +91,23 @@ public class SecurityConfiguration {
                     auth.requestMatchers("/auth/register/admin",
                             "/auth/register/seller").hasAuthority("ADMIN");
 
+                    auth.requestMatchers("/address/**").hasAuthority("CUSTOMER");
+
+                    auth.requestMatchers("/orders/**").hasAuthority("CUSTOMER");
+
+                    auth.requestMatchers("/cart",
+                            "/address",
+                            "customer/address/",
+                            "/customer/orders",
+                            "/orders/create",
+                            "/order/my-orders",
+                            "/order/{orderId}/cancel-delivery",
+                            "/customer/update").hasAuthority("CUSTOMER");
+
+
                     // Satıcıya özel endpointler
                     auth.requestMatchers("/seller/**").hasAuthority("SELLER");
+
 
                     auth.requestMatchers("/category/**").permitAll();
 

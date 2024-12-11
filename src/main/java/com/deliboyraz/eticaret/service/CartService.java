@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.Optional;
 
 @Service
 public class CartService {
@@ -39,6 +40,22 @@ public class CartService {
                     return cartRepository.save(cart);
                 });
     }
+
+    public Cart findCartByCustomer(Customer customer) throws NotFoundException {
+        Optional<Cart> cart = cartRepository.findByCustomer(customer);
+        if (cart.isPresent()) {
+            return cart.get();
+        }
+        throw new NotFoundException("Cart not found with Customer: " + customer.getEmail());
+}
+
+    @Transactional
+    public void clearCart(Cart cart) {
+        cart.getProducts().clear();
+        cart.setItemTotal(BigDecimal.valueOf(0.0));
+        cart.setGrandTotal(BigDecimal.valueOf(0.0));
+        cartRepository.save(cart);
+}
 
     // MÜŞTERİ İDSİNE GÖRE SEPETE ÜRÜN EKLE
     @Transactional
@@ -120,6 +137,12 @@ public class CartService {
 
         // Sepeti kaydet
         return cartRepository.save(cart);
+    }
+    @Transactional(readOnly = true)
+    public Cart getCartForCustomer(Long customerId) {
+        Customer customer = customerService.findById(customerId);
+        return cartRepository.findByCustomer(customer)
+                .orElseThrow(() -> new NotFoundException("Sepet bulunamadı"));
     }
 
 
