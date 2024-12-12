@@ -24,9 +24,9 @@ public class CartService {
         this.cartRepository = cartRepository;
         this.customerService = customerService;
         this.productService = productService;
-}
+    }
 
-    //MÜŞTERİNİN SEPETİ YOKSA OLUŞTUR VARSA VAR OLANI DÖN
+    // MÜŞTERİNİN SEPETİ YOKSA OLUŞTUR VARSA VAR OLANI DÖN
     @Transactional
     public Cart findOrCreateCartForCustomer(Long customerId) {
         Customer customer = customerService.findById(customerId);
@@ -47,7 +47,7 @@ public class CartService {
             return cart.get();
         }
         throw new NotFoundException("Cart not found with Customer: " + customer.getEmail());
-}
+    }
 
     @Transactional
     public void clearCart(Cart cart) {
@@ -55,7 +55,7 @@ public class CartService {
         cart.setItemTotal(BigDecimal.valueOf(0.0));
         cart.setGrandTotal(BigDecimal.valueOf(0.0));
         cartRepository.save(cart);
-}
+    }
 
     // MÜŞTERİ İDSİNE GÖRE SEPETE ÜRÜN EKLE
     @Transactional
@@ -73,9 +73,6 @@ public class CartService {
 
         // Ürünü sepete ekle
         cart.getProducts().add(product);
-
-        // Stoktan düş
-        product.setStock(product.getStock() - 1);
 
         // Ara toplam ve genel toplamı hesapla
         BigDecimal itemTotal = cart.getProducts().stream()
@@ -99,7 +96,7 @@ public class CartService {
 
         // Sepette ürün var mı kontrol et
         long currentQuantity = cart.getProducts().stream()
-                .filter(p -> p.getId()== productId)
+                .filter(p -> p.getId() == productId)
                 .count();
 
         if (currentQuantity == 0) {
@@ -107,8 +104,7 @@ public class CartService {
         }
 
         // Stok kontrolü
-        int stockAdjustment = (int) (currentQuantity - newQuantity);
-        if (product.getStock() + stockAdjustment < 0) {
+        if (newQuantity > product.getStock() + currentQuantity) {
             throw new InsufficientStockException("Insufficient stock for product: " + product.getName());
         }
 
@@ -117,13 +113,11 @@ public class CartService {
             // Ürün miktarını artır
             for (int i = 0; i < newQuantity - currentQuantity; i++) {
                 cart.getProducts().add(product);
-                product.setStock(product.getStock() - 1);
             }
         } else if (newQuantity < currentQuantity) {
             // Ürün miktarını azalt
             for (int i = 0; i < currentQuantity - newQuantity; i++) {
                 cart.getProducts().remove(product);
-                product.setStock(product.getStock() + 1);
             }
         }
 
@@ -138,13 +132,13 @@ public class CartService {
         // Sepeti kaydet
         return cartRepository.save(cart);
     }
+
     @Transactional(readOnly = true)
     public Cart getCartForCustomer(Long customerId) {
         Customer customer = customerService.findById(customerId);
         return cartRepository.findByCustomer(customer)
                 .orElseThrow(() -> new NotFoundException("Sepet bulunamadı"));
     }
-
 
     @Transactional
     public Cart removeProductFromCart(Long customerId, Long productId) {
@@ -156,16 +150,15 @@ public class CartService {
 
         // Sepette ürün var mı kontrol et
         long currentQuantity = cart.getProducts().stream()
-                .filter(p -> p.getId()== productId)
+                .filter(p -> p.getId() == productId)
                 .count();
 
         if (currentQuantity == 0) {
             throw new NotFoundException("Product not found in cart: " + product.getName());
         }
 
-        // Sepetten ürünü çıkar ve stokları geri ekle
-        cart.getProducts().removeIf(p -> p.getId()== productId);
-        product.setStock(product.getStock() + (int) currentQuantity);
+        // Sepetten ürünü çıkar
+        cart.getProducts().removeIf(p -> p.getId() == productId);
 
         // Ara toplam ve genel toplamı yeniden hesapla
         BigDecimal itemTotal = cart.getProducts().stream()
@@ -177,5 +170,19 @@ public class CartService {
 
         // Sepeti kaydet
         return cartRepository.save(cart);
+    }
+
+    // Ödeme işlemi sırasında stok güncellemelerini yapacak metod
+    @Transactional
+    public void checkout(Long customerId) {
+        Cart cart = findOrCreateCartForCustomer(customerId);
+
+        for (Product product : cart.getProducts()) {
+            // Stok güncelle
+            product.setStock(product.getStock() - 1); // Stoktan düş
+            productService.save(product); // Güncellenmiş ürünü kaydet
+        }
+
+        // Ödeme işlemleri burada yapılabilir
     }
 }
