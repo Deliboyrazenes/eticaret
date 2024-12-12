@@ -18,7 +18,7 @@ import java.util.List;
 @RequestMapping("/orders")
 public class OrderController extends BaseController {
     private final OrderService orderService;
-    private  final CustomerService customerService;
+    private final CustomerService customerService;
 
     public OrderController(OrderService orderService, CustomerService customerService) {
         this.orderService = orderService;
@@ -33,7 +33,15 @@ public class OrderController extends BaseController {
 
         Order order = orderService.createOrder(customer.getId(), paymentMethod);
         return new ResponseEntity<>(OrderMapper.entityToDto(order), HttpStatus.CREATED);
+    }
+
+    @GetMapping
+    public ResponseEntity<List<OrderDTO>> getOrders() {
+        Long authenticatedUserId = getAuthenticatedUserId(); // KİMLİĞİ DOĞRULA
+        List<Order> orders = orderService.getOrdersByCustomerId(authenticatedUserId);
+        return ResponseEntity.ok(orders.stream().map(OrderMapper::entityToDto).toList());
+    }
 }
 
 
-}
+
