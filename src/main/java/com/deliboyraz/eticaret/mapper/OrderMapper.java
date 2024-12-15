@@ -15,6 +15,7 @@ public class OrderMapper {
                 order.getId(),
                 order.getOrderDate(),
                 order.getAmount(),
+                order.getStatus(),
                 order.getShippingDate(),
                 CustomerMapper.entityToDto(order.getCustomer()),
                 PaymentMapper.entityToDto(order.getPayment()),
@@ -32,6 +33,7 @@ public class OrderMapper {
         order.setId(orderDTO.id());
         order.setOrderDate(orderDTO.orderDate());
         order.setAmount(orderDTO.amount());
+        order.setStatus(orderDTO.status());
         order.setShippingDate(orderDTO.shippingDate());
         order.setCustomer(CustomerMapper.dtoToEntity(orderDTO.customer()));
         order.setPayment(PaymentMapper.dtoToEntity(orderDTO.payment()));
@@ -39,5 +41,5 @@ public class OrderMapper {
                 .map(OrderItemMapper::dtoToEntity)
                 .collect(Collectors.toList()));
         return order;
-}
+    }
 }

@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 
 @Service
@@ -94,6 +95,52 @@ public class OrderService {
         return orderRepository.findByCustomerId(customerId);
     }
 
-    
+    public List<Order> getOrdersBySeller(Long sellerId) {
+        if (sellerId == null) {
+            return new ArrayList<>();
+        }
+        List<Order> orders = orderRepository.findOrdersBySellerId(sellerId);
+
+        // Her siparişte sadece satıcıya ait ürünleri filtrele
+        orders.forEach(order -> {
+            List<OrderItem> filteredItems = order.getOrderItems().stream()
+                    .filter(item -> item.getProduct().getSeller().getId().equals(sellerId))
+                    .collect(Collectors.toList());
+            order.setOrderItems(filteredItems);
+        });
+
+        return orders;
+    }
+
+    @Transactional
+    public Order updateOrderStatus(Long orderId, Status newStatus) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new NotFoundException("Order not found"));
+
+        // Durum geçiş mantığı
+        switch (order.getStatus()) {
+            case PENDING:
+                if (newStatus == Status.SHIPPED || newStatus == Status.CANCELLED) {
+                    order.setStatus(newStatus);
+                } else {
+                    throw new IllegalStateException("Beklemedeki siparişler sadece kargoya verilebilir veya iptal edilebilir");
+                }
+                break;
+            case SHIPPED:
+                if (newStatus == Status.DELIVERED || newStatus == Status.CANCELLED) {
+                    order.setStatus(newStatus);
+                } else {
+                    throw new IllegalStateException("Kargodaki siparişler sadece teslim edildi olarak işaretlenebilir veya iptal edilebilir");
+                }
+                break;
+            case DELIVERED:
+            case CANCELLED:
+                throw new IllegalStateException("Bu sipariş durumu değiştirilemez");
+            default:
+                throw new IllegalStateException("Geçersiz sipariş durumu");
+        }
+
+        return orderRepository.save(order);
+    }
 
 }

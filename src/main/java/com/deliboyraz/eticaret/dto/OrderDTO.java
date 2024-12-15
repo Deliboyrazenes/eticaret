@@ -11,6 +11,7 @@ import java.util.List;
 public record OrderDTO(Long id,
                        LocalDate orderDate,
                        BigDecimal amount,
+                       Status status,
                        LocalDate shippingDate,
                        CustomerDTO customer,
                        PaymentDTO payment,
