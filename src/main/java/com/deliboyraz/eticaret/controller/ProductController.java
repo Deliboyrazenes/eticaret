@@ -40,22 +40,40 @@ public class ProductController extends BaseController {
         product.setSeller(seller);
         product.setCategory(category);
 
-        Product savedProduct = productService.save(product);
+        if (product.getImagePath() == null || product.getImagePath().isBlank()) {
+            product.setImagePath("default-image.jpg"); // Varsayılan görsel
+        }
 
+        Product savedProduct = productService.save(product);
         return new ResponseEntity<>(ProductMapper.entityToDto(savedProduct), HttpStatus.CREATED);
     }
 
     @PutMapping("/update/{productId}")
     public ResponseEntity<ProductDTO> updateProduct(@PathVariable Long productId, @RequestBody Product updatedProduct) {
-        Long sellerId = getAuthenticatedUserId();
-        Product existingProduct = productService.findProductById(productId);
-        if (!existingProduct.getSeller().getId().equals(sellerId)) {
-            throw new RuntimeException("You are not authorized to update this product");
+        try {
+            Long sellerId = getAuthenticatedUserId();
+            Product existingProduct = productService.findProductById(productId);
+
+            if (!existingProduct.getSeller().getId().equals(sellerId)) {
+                throw new RuntimeException("You are not authorized to update this product");
+            }
+
+            // Mevcut ürünün değerlerini güncelle
+            existingProduct.setName(updatedProduct.getName());
+            existingProduct.setPrice(updatedProduct.getPrice());
+            existingProduct.setStock(updatedProduct.getStock());
+            existingProduct.setBrand(updatedProduct.getBrand());
+
+            // Eğer yeni bir resim yolu geldiyse güncelle, gelmediyse mevcut resim yolunu koru
+            if (updatedProduct.getImagePath() != null && !updatedProduct.getImagePath().isEmpty()) {
+                existingProduct.setImagePath(updatedProduct.getImagePath());
+            }
+
+            Product updated = productService.updateProduct(productId, existingProduct);
+            return new ResponseEntity<>(ProductMapper.entityToDto(updated), HttpStatus.OK);
+        } catch (Exception e) {
+            throw new RuntimeException("Product update failed: " + e.getMessage());
         }
-        updatedProduct.setCategory(existingProduct.getCategory());
-        updatedProduct.setSeller(existingProduct.getSeller());
-        Product updated = productService.updateProduct(productId, updatedProduct);
-        return new ResponseEntity<>(ProductMapper.entityToDto(updated), HttpStatus.OK);
     }
 
     @DeleteMapping("/delete/{productId}")
@@ -115,4 +133,6 @@ public class ProductController extends BaseController {
         }
         return ResponseEntity.ok(productDTOS);
 }
+
+
 }

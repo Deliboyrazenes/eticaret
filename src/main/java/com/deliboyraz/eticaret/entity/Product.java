@@ -63,6 +63,9 @@ public class Product {
 
     @OneToMany(mappedBy = "product")
     private List<OrderItem> orderItems;
+    
+    @Column(name = "image_path", length = 255)
+    private String imagePath;
 
     // `equals` ve `hashCode` metodları
     @Override
