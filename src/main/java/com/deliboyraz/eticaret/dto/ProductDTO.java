@@ -11,5 +11,6 @@ public record ProductDTO(Long id,
                          String brand,
                          Long categoryId,
                          String categoryName,
-                         SellerDTO seller){
+                         SellerDTO seller,
+                         String imagePath) {
 }

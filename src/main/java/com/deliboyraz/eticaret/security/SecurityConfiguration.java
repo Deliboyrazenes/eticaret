@@ -51,7 +51,7 @@ public class SecurityConfiguration {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(Arrays.asList("http://localhost:5173"));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Accept"));
+        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Accept", "X-Requested-With", "Cache-Control"));
         configuration.setExposedHeaders(Arrays.asList("Authorization"));
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(3600L);
@@ -63,64 +63,52 @@ public class SecurityConfiguration {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .csrf(csrf -> csrf.disable())
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth -> {
-                    // Herkese açık endpointler
-                    auth.requestMatchers("/welcome/",
-                            "/auth/register/customer",
-                            "/auth/login",
-                            "/auth/sellerlogin",
-                            "/product/search",
-                            "/products/search/**").permitAll();
+        http.cors(cors -> cors.configurationSource(corsConfigurationSource())).csrf(csrf -> csrf.disable()).sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)).authorizeHttpRequests(auth -> {
 
-                    // Ürün listeleme endpoint'i herkese açık
-                    auth.requestMatchers(HttpMethod.GET, "/product/**").permitAll();
+            // Uploads klasörüne public erişim izni
+            auth.requestMatchers("/uploads/**").permitAll();
+            // Upload endpoint'i için seller yetkisi
+            auth.requestMatchers("/api/upload/**").hasAuthority("SELLER");
 
-                    auth.requestMatchers("/cart/**").hasAuthority("CUSTOMER");
+            // Herkese açık endpointler
+            auth.requestMatchers("/welcome/", "/auth/register/customer", "/auth/login", "/auth/sellerlogin", "/product/search", "/products/search/**").permitAll();
 
-                    // Customer profil endpoint'leri - OPTIONS metoduna izin ver
-                    auth.requestMatchers(HttpMethod.OPTIONS, "/customer/**").permitAll();
+            // Ürün listeleme endpoint'i herkese açık
+            auth.requestMatchers(HttpMethod.GET, "/product/**").permitAll();
 
-                    // Customer profil endpoint'leri - sadece müşteriler erişebilir
-                    auth.requestMatchers("/customer/**").hasAuthority("CUSTOMER");
+            auth.requestMatchers("/cart/**").hasAuthority("CUSTOMER");
 
-                    // Admin yetkilendirmesi gerektiren endpointler
-                    auth.requestMatchers("/auth/register/admin",
-                            "/auth/register/seller").hasAuthority("ADMIN");
+            // Customer profil endpoint'leri - OPTIONS metoduna izin ver
+            auth.requestMatchers(HttpMethod.OPTIONS, "/customer/**").permitAll();
 
-                    auth.requestMatchers("/address/**").hasAuthority("CUSTOMER");
+            // Customer profil endpoint'leri - sadece müşteriler erişebilir
+            auth.requestMatchers("/customer/**").hasAuthority("CUSTOMER");
 
-                    auth.requestMatchers("/orders/**").hasAuthority("CUSTOMER");
+            // Admin yetkilendirmesi gerektiren endpointler
+            auth.requestMatchers("/auth/register/admin", "/auth/register/seller").hasAuthority("ADMIN");
 
-                    auth.requestMatchers("/cart",
-                            "/address",
-                            "customer/address/",
-                            "/customer/orders",
-                            "/orders/create",
-                            "/order/my-orders",
-                            "/order/{orderId}/cancel-delivery",
-                            "/customer/update").hasAuthority("CUSTOMER");
+            auth.requestMatchers("/address/**").hasAuthority("CUSTOMER");
+
+            auth.requestMatchers("/orders/**").hasAnyAuthority("CUSTOMER", "SELLER");
+            auth.requestMatchers("/order/**").hasAnyAuthority("CUSTOMER", "SELLER");
+
+            auth.requestMatchers("/cart", "/address", "customer/address/", "/customer/orders", "/orders/create", "/order/my-orders", "/order/{orderId}/cancel-delivery", "/customer/update").hasAuthority("CUSTOMER");
 
 
-                    // Satıcıya özel endpointler
-                    auth.requestMatchers("/seller/**").hasAuthority("SELLER");
+            // Satıcıya özel endpointler
+            auth.requestMatchers("/seller/**", "/orders/seller/**", "/orders/seller/update-status/**").hasAuthority("SELLER");
 
 
-                    auth.requestMatchers("/category/**").permitAll();
+            auth.requestMatchers("/category/**").permitAll();
 
-                    // Ürün işlemleri (Sadece satıcıya yetkilendirilmiş)
-                    auth.requestMatchers(HttpMethod.POST, "/product/**").hasAuthority("SELLER");
-                    auth.requestMatchers(HttpMethod.PUT, "/product/**").hasAuthority("SELLER");
-                    auth.requestMatchers(HttpMethod.DELETE, "/product/**").hasAuthority("SELLER");
+            // Ürün işlemleri (Sadece satıcıya yetkilendirilmiş)
+            auth.requestMatchers(HttpMethod.POST, "/product/**").hasAuthority("SELLER");
+            auth.requestMatchers(HttpMethod.PUT, "/product/**").hasAuthority("SELLER");
+            auth.requestMatchers(HttpMethod.DELETE, "/product/**").hasAuthority("SELLER");
 
-                    // Diğer tüm istekler doğrulama gerektirir
-                    auth.anyRequest().authenticated();
-                })
-                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
-                .httpBasic(Customizer.withDefaults());
+            // Diğer tüm istekler doğrulama gerektirir
+            auth.anyRequest().authenticated();
+        }).addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class).httpBasic(Customizer.withDefaults());
 
         return http.build();
     }

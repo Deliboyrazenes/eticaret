@@ -18,7 +18,8 @@ public class ProductMapper {
                 product.getBrand(),
                 product.getCategory().getId(),
                 product.getCategory().getName(),
-                SellerMapper.entityToDto(product.getSeller())
+                SellerMapper.entityToDto(product.getSeller()),
+                product.getImagePath()
         );
     }
 
@@ -39,6 +40,7 @@ public class ProductMapper {
         product.setCategory(category);
 
         product.setSeller(SellerMapper.dtoToEntity(productDTO.seller()));
+        product.setImagePath(productDTO.imagePath());
         return product;
 }
 }

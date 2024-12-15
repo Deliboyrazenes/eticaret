@@ -29,7 +29,7 @@ public class CustomerMapper {
 
         Customer customer = new Customer();
         customer.setId(customerDTO.id());
-        customer.setFirstName(customerDTO.firsName());
+        customer.setFirstName(customerDTO.firstName());
         customer.setLastName(customerDTO.lastName());
         customer.setGender(customerDTO.genders());
         customer.setAge(customerDTO.age());
