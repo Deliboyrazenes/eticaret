@@ -45,6 +45,9 @@ public class Order {
     @Column(name = "shipping_date")
     private LocalDate shippingDate;
 
+    @Column(name = "approved_sellers")
+    private String approvedSellers = ""; // Varsayılan olarak boş
+
     @ManyToOne
     @JoinColumn(name = "cart_id")
     private Cart cart;

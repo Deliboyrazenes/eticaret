@@ -2,6 +2,7 @@ package com.deliboyraz.eticaret.controller;
 
 import com.deliboyraz.eticaret.dto.CheckoutDTO;
 import com.deliboyraz.eticaret.dto.OrderDTO;
+import com.deliboyraz.eticaret.dto.OrderItemDTO;
 import com.deliboyraz.eticaret.entity.Order;
 import com.deliboyraz.eticaret.entity.user.Customer;
 import com.deliboyraz.eticaret.enums.PaymentMethods;
@@ -53,9 +54,19 @@ public class OrderController extends BaseController {
             if (orders.isEmpty()) {
                 return ResponseEntity.ok(new ArrayList<>());
             }
+
             List<OrderDTO> orderDTOs = orders.stream()
                     .map(OrderMapper::entityToDto)
                     .collect(Collectors.toList());
+
+            orderDTOs.forEach(orderDTO -> {
+                List<OrderItemDTO> filteredItems = orderDTO.orderItems().stream()
+                        .filter(item -> item.product().seller().id().equals(sellerId))
+                        .collect(Collectors.toList());
+                orderDTO.orderItems().clear();
+                orderDTO.orderItems().addAll(filteredItems);
+            });
+
             return ResponseEntity.ok(orderDTOs);
         } catch (Exception e) {
             return ResponseEntity.badRequest().build();

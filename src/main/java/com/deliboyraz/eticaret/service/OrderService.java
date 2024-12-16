@@ -1,5 +1,6 @@
 package com.deliboyraz.eticaret.service;
 
+import com.deliboyraz.eticaret.controller.BaseController;
 import com.deliboyraz.eticaret.entity.Cart;
 import com.deliboyraz.eticaret.entity.Order;
 import com.deliboyraz.eticaret.entity.OrderItem;
@@ -19,7 +20,7 @@ import java.util.stream.Collectors;
 
 
 @Service
-public class OrderService {
+public class OrderService extends BaseController {
     private final OrderRepository orderRepository;
     private final CustomerService customerService;
     private final ProductService productService;
@@ -120,7 +121,23 @@ public class OrderService {
         // Durum geçiş mantığı
         switch (order.getStatus()) {
             case PENDING:
-                if (newStatus == Status.SHIPPED || newStatus == Status.CANCELLED) {
+                if (newStatus == Status.SHIPPED) {
+                    // Satıcıların onaylama durumunu kontrol et
+                    List<OrderItem> approvedItems = order.getOrderItems().stream()
+                            .filter(item -> item.getProduct().getSeller().getId().equals(getAuthenticatedUserId()))
+                            .collect(Collectors.toList());
+
+                    approvedItems.forEach(item -> item.setQuantity(0)); // Onaylanan ürünleri geçici olarak 0 olarak işaretle
+
+                    // Tüm satıcılar onayladı mı kontrol et
+                    boolean allItemsApproved = order.getOrderItems().stream()
+                            .allMatch(item -> item.getQuantity() == 0);
+
+                    if (allItemsApproved) {
+                        order.setStatus(Status.SHIPPED);
+                        order.getOrderItems().forEach(item -> item.setQuantity(1)); // Onaylanan ürünleri tekrar 1 olarak işaretle
+                    }
+                } else if (newStatus == Status.CANCELLED) {
                     order.setStatus(newStatus);
                 } else {
                     throw new IllegalStateException("Beklemedeki siparişler sadece kargoya verilebilir veya iptal edilebilir");
@@ -142,5 +159,4 @@ public class OrderService {
 
         return orderRepository.save(order);
     }
-
 }
