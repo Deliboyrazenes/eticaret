@@ -45,9 +45,9 @@ public class OrderService extends BaseController {
         Customer customer = customerService.findById(customerId);
         Cart cart = cartService.findCartByCustomer(customer);
 
-        if (customer.getAddresses() == null || customer.getAddresses().isEmpty()) {
-            throw new NotFoundException("Address is required to place an order");
-        }
+//        if (customer.getAddresses() == null || customer.getAddresses().isEmpty()) {
+//            throw new NotFoundException("Address is required to place an order");
+//        }
 
         Order order = new Order();
         order.setOrderDate(LocalDate.now());
