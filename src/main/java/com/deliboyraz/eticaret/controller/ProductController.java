@@ -63,19 +63,19 @@ public class ProductController extends BaseController {
             existingProduct.setPrice(updatedProduct.getPrice());
             existingProduct.setStock(updatedProduct.getStock());
             existingProduct.setBrand(updatedProduct.getBrand());
+            existingProduct.setCategory(updatedProduct.getCategory()); // Kategori güncellemesi
 
             // Eğer yeni bir resim yolu geldiyse güncelle, gelmediyse mevcut resim yolunu koru
             if (updatedProduct.getImagePath() != null && !updatedProduct.getImagePath().isEmpty()) {
                 existingProduct.setImagePath(updatedProduct.getImagePath());
             }
-
+    
             Product updated = productService.updateProduct(productId, existingProduct);
             return new ResponseEntity<>(ProductMapper.entityToDto(updated), HttpStatus.OK);
         } catch (Exception e) {
             throw new RuntimeException("Product update failed: " + e.getMessage());
         }
     }
-
     @DeleteMapping("/delete/{productId}")
     public ResponseEntity<Void> deleteProduct(@PathVariable Long productId) {
         Long sellerId = getAuthenticatedUserId();
