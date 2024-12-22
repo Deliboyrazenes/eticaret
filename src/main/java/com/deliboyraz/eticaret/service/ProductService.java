@@ -33,7 +33,6 @@ public class ProductService {
         }
         throw new NotFoundException("Product not found with ID: " + id);
     }
-
     @Transactional
     public Product updateProduct(Long id, Product updatedProduct) {
         Product existingProduct = findProductById(id);
@@ -42,8 +41,17 @@ public class ProductService {
         existingProduct.setPrice(updatedProduct.getPrice());
         existingProduct.setStock(updatedProduct.getStock());
         existingProduct.setBrand(updatedProduct.getBrand());
-        existingProduct.setCategory(updatedProduct.getCategory());
-        existingProduct.setSeller(updatedProduct.getSeller());
+
+        // Resim yolu güncelleme
+        if (updatedProduct.getImagePath() != null) {
+            existingProduct.setImagePath(updatedProduct.getImagePath());
+        }
+
+        // Kategoriyi mevcut üründen al
+        existingProduct.setCategory(existingProduct.getCategory());
+
+        // Satıcıyı mevcut üründen al
+        existingProduct.setSeller(existingProduct.getSeller());
 
         return productRepository.save(existingProduct);
     }

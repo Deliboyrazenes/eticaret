@@ -40,8 +40,9 @@ public class ProductController extends BaseController {
         product.setSeller(seller);
         product.setCategory(category);
 
-        if (product.getImagePath() == null || product.getImagePath().isBlank()) {
-            product.setImagePath("default-image.jpg"); // Varsayılan görsel
+        // Resim kontrolü - null veya boş string kontrolü
+        if (product.getImagePath() == null || product.getImagePath().trim().isEmpty()) {
+            product.setImagePath("default-image.jpg");
         }
 
         Product savedProduct = productService.save(product);
@@ -58,24 +59,29 @@ public class ProductController extends BaseController {
                 throw new RuntimeException("You are not authorized to update this product");
             }
 
-            // Mevcut ürünün değerlerini güncelle
+            // Kategori güncelleme
+            if (updatedProduct.getCategory() != null) {
+                existingProduct.setCategory(updatedProduct.getCategory());
+            }
+
+            // Diğer alanları güncelle
             existingProduct.setName(updatedProduct.getName());
             existingProduct.setPrice(updatedProduct.getPrice());
             existingProduct.setStock(updatedProduct.getStock());
             existingProduct.setBrand(updatedProduct.getBrand());
-            existingProduct.setCategory(updatedProduct.getCategory()); // Kategori güncellemesi
 
-            // Eğer yeni bir resim yolu geldiyse güncelle, gelmediyse mevcut resim yolunu koru
-            if (updatedProduct.getImagePath() != null && !updatedProduct.getImagePath().isEmpty()) {
+            // Resim yolu güncelleme
+            if (updatedProduct.getImagePath() != null) {
                 existingProduct.setImagePath(updatedProduct.getImagePath());
             }
-    
+
             Product updated = productService.updateProduct(productId, existingProduct);
             return new ResponseEntity<>(ProductMapper.entityToDto(updated), HttpStatus.OK);
         } catch (Exception e) {
             throw new RuntimeException("Product update failed: " + e.getMessage());
         }
     }
+
     @DeleteMapping("/delete/{productId}")
     public ResponseEntity<Void> deleteProduct(@PathVariable Long productId) {
         Long sellerId = getAuthenticatedUserId();

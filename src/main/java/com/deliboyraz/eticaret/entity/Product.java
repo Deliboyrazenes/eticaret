@@ -9,6 +9,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
@@ -64,7 +66,7 @@ public class Product {
     @OneToMany(mappedBy = "product")
     private List<OrderItem> orderItems;
     
-    @Column(name = "image_path", length = 255)
+    @Column(name = "image_path", length = 1000)
     private String imagePath;
 
     // `equals` ve `hashCode` metodları
@@ -79,5 +81,21 @@ public class Product {
     @Override
     public int hashCode() {
         return Objects.hash(id); // `id` alanına göre hashCode oluştur
+    }
+
+    @Transient // DB'de saklanmayacak
+    public List<String> getImageList() {
+        if (imagePath == null || imagePath.trim().isEmpty()) {
+            return new ArrayList<>();
+        }
+        return Arrays.asList(imagePath.split(","));
+    }
+
+    public void setImageList(List<String> images) {
+        if (images == null || images.isEmpty()) {
+            this.imagePath = null;
+        } else {
+            this.imagePath = String.join(",", images);
+        }
     }
 }
