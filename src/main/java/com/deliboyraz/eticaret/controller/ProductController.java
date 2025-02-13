@@ -30,7 +30,7 @@ public class ProductController extends BaseController {
         this.categoryService = categoryService;
     }
 
-    //SEÇİLEN İDDEKİ KATEGORİYE YENİ ÜRÜN EKLEME. SELLER OTOMATİK OLARAK BELİRLENİYOR
+
     @PostMapping("/add/{categoryId}")
     public ResponseEntity<ProductDTO> addProduct(@RequestBody Product product, @PathVariable Long categoryId) {
         Long sellerId = getAuthenticatedUserId();
